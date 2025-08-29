@@ -76,79 +76,81 @@
     <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Leitor de Código de Barras</h1>
-        <div class="field">
-            <label for="codigo">GTIN/EAN:</label>
-            <input type="text" id="codigo" placeholder="Aponte a câmera para o código de barras">
-            <button type="button" id="scan-barcode" style="margin-top:8px;background:#2ecc40;">Ler código de barras com a câmera</button>
-        </div>
-        <video id="barcode-scanner"></video>
-        <button type="button" id="close-scanner">Fechar Scanner</button>
+<!-- ...código anterior... -->
+<div class="container">
+    <h1>Leitor de Código de Barras</h1>
+    <div class="field">
+        <label for="codigo">GTIN/EAN:</label>
+        <input type="text" id="codigo" placeholder="Aponte a câmera para o código de barras">
+        <button type="button" id="scan-barcode" style="margin-top:8px;background:#2ecc40;">Ler código de barras com a câmera</button>
     </div>
-    <script>
-        const scanBtn = document.getElementById('scan-barcode');
-        const closeScannerBtn = document.getElementById('close-scanner');
-        const video = document.getElementById('barcode-scanner');
-        let scanning = false;
+    <div id="barcode-scanner" style="display:none"></div>
+    <button type="button" id="close-scanner" style="display:none">Fechar Scanner</button>
+</div>
+<script>
+    const scanBtn = document.getElementById('scan-barcode');
+    const closeScannerBtn = document.getElementById('close-scanner');
+    const scannerDiv = document.getElementById('barcode-scanner');
+    let scanning = false;
 
-        scanBtn.addEventListener('click', function() {
-            video.style.display = 'block';
-            closeScannerBtn.style.display = 'block';
-            scanBtn.disabled = true;
-            startScanner();
+    scanBtn.addEventListener('click', function() {
+        scannerDiv.style.display = 'block';
+        closeScannerBtn.style.display = 'block';
+        scanBtn.disabled = true;
+        startScanner();
+    });
+
+    closeScannerBtn.addEventListener('click', function() {
+        stopScanner();
+    });
+
+    function startScanner() {
+        scanning = true;
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: scannerDiv, // agora é o div!
+                constraints: {
+                    facingMode: { exact: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            },
+            decoder: {
+                readers: [
+                    "ean_reader",
+                    "ean_8_reader",
+                    "upc_reader",
+                    "upc_e_reader"
+                ]
+            },
+            locate: true
+        }, function(err) {
+            if (err) {
+                alert("Erro ao acessar a câmera: " + err);
+                stopScanner();
+                return;
+            }
+            Quagga.start();
         });
 
-        closeScannerBtn.addEventListener('click', function() {
-            stopScanner();
+        Quagga.onDetected(function(result) {
+            if (scanning && result && result.codeResult && result.codeResult.code) {
+                document.getElementById('codigo').value = result.codeResult.code;
+                stopScanner();
+            }
         });
+    }
 
-        function startScanner() {
-            scanning = true;
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: video,
-                    constraints: {
-                        facingMode: { exact: "environment" }, // câmera traseira
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                },
-                decoder: {
-                    readers: [
-                        "ean_reader",
-                        "ean_8_reader",
-                        "upc_reader",
-                        "upc_e_reader"
-                    ]
-                },
-                locate: true
-            }, function(err) {
-                if (err) {
-                    alert("Erro ao acessar a câmera: " + err);
-                    stopScanner();
-                    return;
-                }
-                Quagga.start();
-            });
-
-            Quagga.onDetected(function(result) {
-                if (scanning && result && result.codeResult && result.codeResult.code) {
-                    document.getElementById('codigo').value = result.codeResult.code;
-                    stopScanner();
-                }
-            });
-        }
-
-        function stopScanner() {
-            scanning = false;
-            Quagga.stop();
-            video.style.display = 'none';
-            closeScannerBtn.style.display = 'none';
-            scanBtn.disabled = false;
-        }
-    </script>
+    function stopScanner() {
+        scanning = false;
+        Quagga.stop();
+        scannerDiv.style.display = 'none';
+        closeScannerBtn.style.display = 'none';
+        scanBtn.disabled = false;
+    }
+</script>
+<!-- ...código posterior... -->
 </body>
 </html>
