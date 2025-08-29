@@ -119,16 +119,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>Consulta API 1.4</h1>
+        <h1>Consulta API 1.5</h1>
         <form id="consulta-form">
             <!-- <div class="field">
                 <label for="token">Token de Acesso:</label>
                 <input type="password" id="token" value="3uxmzttrt32b18UdV_jS7g" > <!--required placeholder=" Seu X-Cosmos-Token"
-            </div> -->
+            </div> 
             <div class="field">
                 <label for="useragent">Usuário:</label>
-                <input type="text" id="useragent" value="thiago@santanasoft.com"> <!--required placeholder=" Seu usuário"-->
-            </div>
+                <input type="text" id="useragent" value="thiago@santanasoft.com"> <!--required placeholder=" Seu usuário"
+            </div> -->
             <div class="field">
                 <label for="gtin">GTIN/EAN:</label>
                 <input type="text" id="gtin" required placeholder=" Ex: 7891910000197">
@@ -208,7 +208,7 @@
         document.getElementById('consulta-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const token = '3uxmzttrt32b18UdV_jS7g' //document.getElementById('token').value.trim();
-            const userAgent = document.getElementById('useragent').value.trim();
+            const userAgent = 'thiago@santanasoft.com' // document.getElementById('useragent').value.trim();
             const gtin = document.getElementById('gtin').value.trim();
             const output = document.getElementById('output');
             output.innerHTML = '';
