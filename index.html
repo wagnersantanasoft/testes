@@ -119,7 +119,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Consulta API 1.3</h1>
+        <h1>Consulta API 1.2</h1>
         <form id="consulta-form">
             <div class="field">
                 <label for="token">Token de Acesso:</label>
@@ -207,7 +207,7 @@
         // Consulta API
         document.getElementById('consulta-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const token = '3uxmzttrt32b18UdV_jS7g' //document.getElementById('token').value.trim();
+            const token = document.getElementById('token').value.trim();
             const userAgent = document.getElementById('useragent').value.trim();
             const gtin = document.getElementById('gtin').value.trim();
             const output = document.getElementById('output');
