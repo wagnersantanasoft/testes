@@ -1,8 +1,9 @@
+<!-- Exemplo funcional: vídeo da câmera exibido na tela com leitura de código de barras -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Leitor de Código de Barras com Câmera</title>
+    <title>Leitor de Código de Barras</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -49,8 +50,6 @@
             background: #aaa;
         }
     </style>
-    <!-- QuaggaJS CDN -->
-    <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -66,63 +65,92 @@
         const pararBtn = document.getElementById('parar');
         const codigoDiv = document.getElementById('codigo');
         let scanning = false;
+        let stream = null;
 
         function getConstraints() {
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                 return {
-                    facingMode: { exact: "environment" },
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
+                    video: {
+                        facingMode: { exact: "environment" },
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
                 };
             }
-            return { facingMode: "environment" };
+            return { video: { facingMode: "environment" } };
         }
 
-        iniciarBtn.onclick = function() {
+        iniciarBtn.onclick = async function() {
             iniciarBtn.disabled = true;
             pararBtn.style.display = 'inline-block';
             codigoDiv.textContent = '';
+            await startCamera();
             startScanner();
         };
 
         pararBtn.onclick = function() {
             stopScanner();
+            stopCamera();
         };
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(getConstraints());
+                video.srcObject = stream;
+                await video.play();
+            } catch (err) {
+                alert("Erro ao acessar a câmera: " + err);
+                iniciarBtn.disabled = false;
+                pararBtn.style.display = 'none';
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+        }
 
         function startScanner() {
             scanning = true;
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: video,
-                    constraints: getConstraints()
-                },
-                decoder: {
-                    readers: [
-                        "ean_reader",
-                        "ean_8_reader",
-                        "upc_reader",
-                        "upc_e_reader"
-                    ]
-                },
-                locate: true
-            }, function(err) {
-                if (err) {
-                    alert("Erro ao acessar a câmera: " + err);
-                    stopScanner();
-                    return;
-                }
-                Quagga.start();
-            });
+            if (window.Quagga) {
+                Quagga.init({
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: video,
+                        constraints: getConstraints().video
+                    },
+                    decoder: {
+                        readers: [
+                            "ean_reader",
+                            "ean_8_reader",
+                            "upc_reader",
+                            "upc_e_reader"
+                        ]
+                    },
+                    locate: true
+                }, function(err) {
+                    if (err) {
+                        alert("Erro ao iniciar o Quagga: " + err);
+                        stopScanner();
+                        stopCamera();
+                        return;
+                    }
+                    Quagga.start();
+                });
 
-            Quagga.onDetected(onDetected);
+                Quagga.onDetected(onDetected);
+            }
         }
 
         function onDetected(result) {
             if (scanning && result && result.codeResult && result.codeResult.code) {
                 codigoDiv.textContent = "Código lido: " + result.codeResult.code;
                 stopScanner();
+                stopCamera();
             }
         }
 
@@ -131,8 +159,10 @@
             try { Quagga.stop(); } catch (e) {}
             iniciarBtn.disabled = false;
             pararBtn.style.display = 'none';
-            Quagga.offDetected(onDetected);
+            if (window.Quagga) Quagga.offDetected(onDetected);
         }
     </script>
+    <!-- QuaggaJS CDN -->
+    <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
 </body>
 </html>
