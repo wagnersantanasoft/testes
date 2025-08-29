@@ -141,14 +141,13 @@
         <div id="output"></div>
     </div>
     <script>
-        // Barcode scan
-        const scanBtn = document.getElementById('scan-barcode');
+           const scanBtn = document.getElementById('scan-barcode');
         const closeScannerBtn = document.getElementById('close-scanner');
-        const video = document.getElementById('barcode-scanner');
+        const scannerDiv = document.getElementById('barcode-scanner');
         let scanning = false;
 
         scanBtn.addEventListener('click', function() {
-            video.style.display = 'block';
+            scannerDiv.style.display = 'block';
             closeScannerBtn.style.display = 'block';
             scanBtn.disabled = true;
             startScanner();
@@ -164,9 +163,11 @@
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: video,
+                    target: scannerDiv, // agora é o div!
                     constraints: {
-                        facingMode: "environment"
+                        facingMode: { exact: "environment" },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     }
                 },
                 decoder: {
@@ -176,7 +177,8 @@
                         "upc_reader",
                         "upc_e_reader"
                     ]
-                }
+                },
+                locate: true
             }, function(err) {
                 if (err) {
                     alert("Erro ao acessar a câmera: " + err);
@@ -188,7 +190,7 @@
 
             Quagga.onDetected(function(result) {
                 if (scanning && result && result.codeResult && result.codeResult.code) {
-                    document.getElementById('gtin').value = result.codeResult.code;
+                    document.getElementById('codigo').value = result.codeResult.code;
                     stopScanner();
                 }
             });
@@ -197,7 +199,7 @@
         function stopScanner() {
             scanning = false;
             Quagga.stop();
-            video.style.display = 'none';
+            scannerDiv.style.display = 'none';
             closeScannerBtn.style.display = 'none';
             scanBtn.disabled = false;
         }
