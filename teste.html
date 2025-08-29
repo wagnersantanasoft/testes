@@ -1,9 +1,8 @@
-<!-- Exemplo de página HTML + CSS + JS para consultar produtos pelo GTIN/EAN na API Cosmos -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Consulta Cosmos API</title>
+    <title>Leitor de Código de Barras</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -29,7 +28,7 @@
             font-weight: 500;
             color: #333;
         }
-        input[type="text"], input[type="password"] {
+        input[type="text"] {
             width: 100%;
             padding: 12px 0;
             margin: 8px 0 16px 0;
@@ -52,115 +51,104 @@
         button:hover {
             background: #005fa3;
         }
-        .result, .error {
-            margin-top: 24px;
-            padding: 16px;
-            border-radius: 8px;
-        }
-        .result {
-            background: #f1f7fa;
-            color: #222;
-        }
-        .error {
-            background: #ffeaea;
-            color: #b30000;
-            border: 1px solid #ffb3b3;
-        }
-        .product-img {
-            max-width: 120px;
-            display: block;
-            margin: 0 auto 12px auto;
+        #barcode-scanner {
+            display: none;
+            margin: 0 auto 16px auto;
+            width: 100%;
+            max-width: 320px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        .field {
-            margin-bottom: 10px;
-        }
-        @media (max-width: 500px) {
-            .container {
-                padding: 12px 2vw;
-            }
+        #close-scanner {
+            display: none;
+            margin-bottom: 16px;
+            background: #ff4136;
+            color: #fff;
+            border: none;
+            padding: 8px 0;
+            width: 100%;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
         }
     </style>
+    <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Consulta Cosmos API</h1>
-        <form id="consulta-form">
-            <div class="field">
-                <label for="token">Token de Acesso:</label>
-                <input type="password" id="token" required placeholder="Seu X-Cosmos-Token">
-            </div>
-            <div class="field">
-                <label for="useragent">User Agent:</label>
-                <input type="text" id="useragent" required placeholder="Seu User Agent">
-            </div>
-            <div class="field">
-                <label for="gtin">GTIN/EAN:</label>
-                <input type="text" id="gtin" required placeholder="Ex: 7891910000197">
-            </div>
-            <button type="submit">Consultar Produto</button>
-        </form>
-        <div id="output"></div>
+        <h1>Leitor de Código de Barras</h1>
+        <div class="field">
+            <label for="codigo">GTIN/EAN:</label>
+            <input type="text" id="codigo" placeholder="Aponte a câmera para o código de barras">
+            <button type="button" id="scan-barcode" style="margin-top:8px;background:#2ecc40;">Ler código de barras com a câmera</button>
+        </div>
+        <video id="barcode-scanner"></video>
+        <button type="button" id="close-scanner">Fechar Scanner</button>
     </div>
     <script>
-        document.getElementById('consulta-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const token = document.getElementById('token').value.trim();
-            const userAgent = document.getElementById('useragent').value.trim();
-            const gtin = document.getElementById('gtin').value.trim();
-            const output = document.getElementById('output');
-            output.innerHTML = '';
+        const scanBtn = document.getElementById('scan-barcode');
+        const closeScannerBtn = document.getElementById('close-scanner');
+        const video = document.getElementById('barcode-scanner');
+        let scanning = false;
 
-            if (!token || !userAgent || !gtin) {
-                output.innerHTML = '<div class="error">Preencha todos os campos.</div>';
-                return;
-            }
-
-            output.innerHTML = 'Consultando...';
-
-            try {
-                const response = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${gtin}.json`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Cosmos-Token': token,
-                        'User-Agent': userAgent
-                    }
-                });
-
-                if (response.status === 401) {
-                    output.innerHTML = '<div class="error">Token ou User Agent inválido.</div>';
-                    return;
-                }
-                if (response.status === 404) {
-                    output.innerHTML = '<div class="error">Produto não encontrado.</div>';
-                    return;
-                }
-                if (!response.ok) {
-                    output.innerHTML = `<div class="error">Erro: ${response.status} - ${response.statusText}</div>`;
-                    return;
-                }
-
-                const data = await response.json();
-
-                output.innerHTML = `
-                    <div class="result">
-                        <img class="product-img" src="${data.thumbnail}" alt="Imagem do produto" onerror="this.style.display='none'">
-                        <strong>Descrição:</strong> ${data.description || '-'}<br>
-                        <strong>Marca:</strong> ${data.brand?.name || '-'}<br>
-                        <strong>Preço Médio:</strong> ${data.avg_price ? 'R$ ' + data.avg_price : '-'}<br>
-                        <strong>GTIN:</strong> ${data.gtin || '-'}<br>
-                        <strong>NCM:</strong> ${data.ncm?.code || '-'} - ${data.ncm?.description || '-'}<br>
-                        <strong>GPC:</strong> ${data.gpc?.code || '-'} - ${data.gpc?.description || '-'}<br>
-                        <strong>Peso Bruto:</strong> ${data.gross_weight || '-'}g<br>
-                        <strong>Peso Líquido:</strong> ${data.net_weight || '-'}g<br>
-                    </div>
-                `;
-            } catch (err) {
-                output.innerHTML = `<div class="error">Erro ao consultar a API.</div>`;
-            }
+        scanBtn.addEventListener('click', function() {
+            video.style.display = 'block';
+            closeScannerBtn.style.display = 'block';
+            scanBtn.disabled = true;
+            startScanner();
         });
+
+        closeScannerBtn.addEventListener('click', function() {
+            stopScanner();
+        });
+
+        function startScanner() {
+            scanning = true;
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: video,
+                    constraints: {
+                        facingMode: { exact: "environment" }, // câmera traseira
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "upc_reader",
+                        "upc_e_reader"
+                    ]
+                },
+                locate: true
+            }, function(err) {
+                if (err) {
+                    alert("Erro ao acessar a câmera: " + err);
+                    stopScanner();
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected(function(result) {
+                if (scanning && result && result.codeResult && result.codeResult.code) {
+                    document.getElementById('codigo').value = result.codeResult.code;
+                    stopScanner();
+                }
+            });
+        }
+
+        function stopScanner() {
+            scanning = false;
+            Quagga.stop();
+            video.style.display = 'none';
+            closeScannerBtn.style.display = 'none';
+            scanBtn.disabled = false;
+        }
     </script>
 </body>
 </html>
