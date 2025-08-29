@@ -80,8 +80,20 @@
             margin: 0 auto 16px auto;
             width: 100%;
             max-width: 320px;
+            height: 240px; /* Altura fixa para o scanner */
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            position: relative;
+            background: #000; /* Fundo preto para o vídeo */
+        }
+        #barcode-scanner video, #barcode-scanner canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
         }
         #close-scanner {
             display: none;
